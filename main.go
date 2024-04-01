@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/go-resty/resty/v2"
+	"time"
 )
 
 func main() {
@@ -31,10 +32,13 @@ func main() {
 	//	fmt.Printf("cookie%d:%v\n", i, cookie)
 	//}
 
-	for i := 0; i < 300; i++ {
+	//var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		//wg.Add(1)
 		go QianDao()
 	}
-	// QianDao()
+	//wg.Wait()
+	time.Sleep(time.Second * 10)
 }
 
 // QianDao 签到
@@ -67,6 +71,8 @@ func QianDao() {
 	if err != nil {
 		panic(err)
 	}
-	//fmt.Printf("resp:%v\n", resp)
+	// fmt.Printf("resp:%v\n", resp)
+	// TODO: Why????
 	fmt.Printf("status:%s,msg:%s\n", success.Status, success.Msg)
+	//wg.Done()
 }
