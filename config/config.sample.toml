@@ -1,0 +1,3 @@
+UserName = "xxx"
+Password = "xxx123"
+ConcurrentNum = 1000  # 并发数
