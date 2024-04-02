@@ -53,7 +53,7 @@ func Login(cfg *config.Config) Cookie {
 	resp, err := client.R().
 		SetHeaders(map[string]string{"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}).
 		SetBody(body).
-		SetResult(&success). // or SetResult(AuthSuccess{}).
+		SetResult(&success).    // or SetResult(AuthSuccess{}).
 		SetError(&AuthError{}). // or SetError(AuthError{}).
 		Post("https://xueke58.com/wp-admin/admin-ajax.php")
 	if err != nil {
@@ -96,7 +96,7 @@ func QianDao(cookie Cookie) {
 			"Cookie":       ck,
 		}).
 		SetBody("action=user_qiandao").
-		SetResult(&success). // or SetResult(AuthSuccess{}).
+		SetResult(&success).    // or SetResult(AuthSuccess{}).
 		SetError(&AuthError{}). // or SetError(AuthError{}).
 		Post("https://xueke58.com/wp-admin/admin-ajax.php")
 	if err != nil {
