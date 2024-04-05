@@ -3,30 +3,37 @@ package main
 import (
 	"fmt"
 	"github.com/go-resty/resty/v2"
+	"go.uber.org/zap"
 	"refush-diamonds/config"
-	"sync"
+	myZap "refush-diamonds/zap"
 )
 
 func main() {
+	_ = myZap.SetLevelFromString("info")
+	myZap.InitZap("dev")
+
 	// TODO: 读取配置文件的目录
+	logger := zap.L().With(zap.String("service", "钻石"))
 	config.ParseConfig("./bin/")
+	logger.Info("服务启动。。。")
 	if config.C == nil {
 		panic("Unmarshal Config  Failed")
 	}
-	cookie := Login(config.C)
-	var wg sync.WaitGroup
-	loopNum := 100
-	if config.C.ConcurrentNum > 0 {
-		loopNum = config.C.ConcurrentNum
-	}
-	for i := 0; i < loopNum; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			QianDao(cookie)
-		}()
-	}
-	wg.Wait()
+	logger.Info("服务启动成功....")
+	//cookie := Login(config.C)
+	//var wg sync.WaitGroup
+	//loopNum := 100
+	//if config.C.ConcurrentNum > 0 {
+	//	loopNum = config.C.ConcurrentNum
+	//}
+	//for i := 0; i < loopNum; i++ {
+	//	wg.Add(1)
+	//	go func() {
+	//		defer wg.Done()
+	//		QianDao(cookie)
+	//	}()
+	//}
+	//wg.Wait()
 }
 
 // Cookie 登录成功后返回的cookie
@@ -53,7 +60,7 @@ func Login(cfg *config.Config) Cookie {
 	resp, err := client.R().
 		SetHeaders(map[string]string{"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}).
 		SetBody(body).
-		SetResult(&success).    // or SetResult(AuthSuccess{}).
+		SetResult(&success). // or SetResult(AuthSuccess{}).
 		SetError(&AuthError{}). // or SetError(AuthError{}).
 		Post("https://xueke58.com/wp-admin/admin-ajax.php")
 	if err != nil {
@@ -96,7 +103,7 @@ func QianDao(cookie Cookie) {
 			"Cookie":       ck,
 		}).
 		SetBody("action=user_qiandao").
-		SetResult(&success).    // or SetResult(AuthSuccess{}).
+		SetResult(&success). // or SetResult(AuthSuccess{}).
 		SetError(&AuthError{}). // or SetError(AuthError{}).
 		Post("https://xueke58.com/wp-admin/admin-ajax.php")
 	if err != nil {
