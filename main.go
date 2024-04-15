@@ -3,11 +3,14 @@ package main
 import (
 	"fmt"
 	"github.com/go-resty/resty/v2"
+	"github.com/panjf2000/ants/v2"
 	"go.uber.org/zap"
 	"golang.org/x/net/html"
 	"refush-diamonds/config"
 	myZap "refush-diamonds/zap"
 	"strings"
+	"sync"
+	"time"
 )
 
 func main() {
@@ -24,12 +27,13 @@ func main() {
 	logger.Info("服务启动成功....")
 
 	cookie := Login(config.C)
-	ShowDiamonds(cookie)
-	//var wg sync.WaitGroup
-	//loopNum := 100
-	//if config.C.ConcurrentNum > 0 {
-	//	loopNum = config.C.ConcurrentNum
-	//}
+	// ShowDiamonds(cookie)
+	var wg sync.WaitGroup
+	runTimes := 100
+	if config.C.ConcurrentNum > 0 {
+		runTimes = config.C.ConcurrentNum
+	}
+
 	//for i := 0; i < loopNum; i++ {
 	//	wg.Add(1)
 	//	go func() {
@@ -38,6 +42,20 @@ func main() {
 	//	}()
 	//}
 	//wg.Wait()
+
+	// use ants pool
+	mp, _ := ants.NewMultiPool(4, runTimes/4, ants.LeastTasks)
+	defer mp.ReleaseTimeout(5 * time.Second)
+	for i := 0; i < runTimes; i++ {
+		wg.Add(1)
+		_ = mp.Submit(func() {
+			defer wg.Done() // submit的函数内部必须wg.Done
+			QianDao(cookie)
+		})
+	}
+	wg.Wait()
+	fmt.Printf("running goroutines: %d\n", mp.Running())
+	fmt.Printf("finish all tasks.\n")
 }
 
 // Cookie 登录成功后返回的cookie
