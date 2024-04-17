@@ -33,13 +33,13 @@ func main() {
 		demoFunc()
 		wg.Done()
 	}
-	//for i := 0; i < runTimes; i++ {
-	//	wg.Add(1)
-	//	_ = ants.Submit(syncCalculateSum) // 将任务提交到池中
-	//}
-	//wg.Wait()
-	//fmt.Printf("running goroutines: %d\n", ants.Running())
-	//fmt.Printf("finish all tasks.\n")
+	for i := 0; i < runTimes; i++ {
+		wg.Add(1)
+		_ = ants.Submit(syncCalculateSum) // 将任务提交到池中
+	}
+	wg.Wait()
+	fmt.Printf("running goroutines: %d\n", ants.Running())
+	fmt.Printf("finish all tasks.\n")
 
 	// Use the pool with a function,
 	// set 10 to the capacity of goroutine pool and 1 second for expired duration.

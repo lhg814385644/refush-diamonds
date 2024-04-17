@@ -3,14 +3,12 @@ package main
 import (
 	"fmt"
 	"github.com/go-resty/resty/v2"
-	"github.com/panjf2000/ants/v2"
 	"go.uber.org/zap"
 	"golang.org/x/net/html"
 	"refush-diamonds/config"
 	myZap "refush-diamonds/zap"
 	"strings"
 	"sync"
-	"time"
 )
 
 func main() {
@@ -34,28 +32,58 @@ func main() {
 		runTimes = config.C.ConcurrentNum
 	}
 
-	//for i := 0; i < loopNum; i++ {
-	//	wg.Add(1)
-	//	go func() {
-	//		defer wg.Done()
-	//		QianDao(cookie)
-	//	}()
-	//}
-	//wg.Wait()
-
-	// use ants pool
-	mp, _ := ants.NewMultiPool(4, runTimes/4, ants.LeastTasks)
-	defer mp.ReleaseTimeout(5 * time.Second)
 	for i := 0; i < runTimes; i++ {
 		wg.Add(1)
-		_ = mp.Submit(func() {
-			defer wg.Done() // submit的函数内部必须wg.Done
+		go func() {
+			defer wg.Done()
 			QianDao(cookie)
-		})
+		}()
 	}
 	wg.Wait()
-	fmt.Printf("running goroutines: %d\n", mp.Running())
-	fmt.Printf("finish all tasks.\n")
+
+	/**********************************************/
+	// 创建通道跟踪成功请求
+	//successCh := make(chan bool, 10)
+	//successCount := 0
+	//p, err := ants.NewPool(20)
+	//if err != nil {
+	//	fmt.Printf("NewPool err:%v\n", err)
+	//}
+	//// 监控成功通道以达到阈值
+	//go func() {
+	//	for {
+	//		select {
+	//		case result := <-successCh:
+	//			if result {
+	//				successCount++
+	//			} else {
+	//				successCount = 0
+	//			}
+	//			if successCount >= 5 {
+	//				p.Release() // 关闭池并释放worker队列
+	//				fmt.Println("成功阈值达到，停止后续请求")
+	//				return
+	//			}
+	//			// TODO: 需要设一个默认能退出的标志 暂时不管
+	//		}
+	//	}
+	//}()
+	//for i := 0; i < runTimes; i++ {
+	//	wg.Add(1)
+	//	err := p.Submit(func() {
+	//		defer wg.Done()              // submit的函数内部必须wg.Done
+	//		QianDaoV2(cookie, successCh) // TODO:需要有返回值，并接收
+	//	})
+	//	if err != nil {
+	//		fmt.Printf("submit err:%v\n", err)
+	//		return
+	//	}
+	//}
+	//// 确保池能正常释放
+	//if !p.IsClosed() {
+	//	p.Release()
+	//}
+	//wg.Wait()
 }
 
 // Cookie 登录成功后返回的cookie
@@ -132,6 +160,46 @@ func QianDao(cookie Cookie) {
 		// TODO: 不要panic,该错误直接不处理
 		fmt.Printf("err:%v\n", err)
 		return
+	}
+	fmt.Printf("status:%s,msg:%s\n", success.Status, success.Msg)
+}
+
+func QianDaoV2(cookie Cookie, successCh chan bool) {
+	client := resty.New()
+
+	type AuthSuccess struct {
+		Status string `json:"status"`
+		Msg    string `json:"msg"`
+	}
+	type AuthError struct {
+	}
+	var success AuthSuccess
+
+	first := cookie.first
+	second := cookie.second
+	three := cookie.third
+	ck := first + second + three
+
+	// POST Map, default is JSON content type. No need to set one
+	_, err := client.R().
+		SetHeaders(map[string]string{
+			"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+			"Cookie":       ck,
+		}).
+		SetBody("action=user_qiandao").
+		SetResult(&success). // or SetResult(AuthSuccess{}).
+		SetError(&AuthError{}). // or SetError(AuthError{}).
+		Post("https://xueke58.com/wp-admin/admin-ajax.php")
+	if err != nil {
+		// TODO: 不要panic,该错误直接不处理
+		fmt.Printf("err:%v\n", err)
+		return
+	}
+	// TODO:发送信号表明成功请求
+	if success.Status == "1" {
+		successCh <- true
+	} else {
+		successCh <- false
 	}
 	fmt.Printf("status:%s,msg:%s\n", success.Status, success.Msg)
 }
